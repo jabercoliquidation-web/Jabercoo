@@ -1,12 +1,18 @@
 import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { File, Phone, Globe } from "lucide-react";
+import { File, Phone, Globe, Save, Trash2 } from "lucide-react";
 import { CompanyForm, type CompanyFormData } from "@/components/company-form";
 import { ItemForm, type ItemFormData } from "@/components/item-form";
-import { InvoiceActions } from "@/components/invoice-actions";
-import { InvoicePreview } from "@/components/invoice-preview";
+import { InvoiceTemplateSelector } from "@/components/invoice-template-selector";
+import { InvoiceTemplateA4 } from "@/components/invoice-template-a4";
+import { InvoiceTemplate58mm } from "@/components/invoice-template-58mm";
+import { InvoiceTemplate80mm } from "@/components/invoice-template-80mm";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { printInvoice, exportToPDF, type TemplateSize } from "@/utils/print-utils";
 
 interface InvoiceItem extends ItemFormData {
   total: number;
@@ -117,7 +123,7 @@ export default function InvoiceGenerator() {
     saveInvoiceMutation.mutate(invoiceData);
   };
 
-  const handlePrintInvoice = () => {
+  const handlePrintInvoice = (templateSize: TemplateSize) => {
     if (items.length === 0) {
       toast({
         title: "No Items",
@@ -127,10 +133,11 @@ export default function InvoiceGenerator() {
       return;
     }
     
-    window.print();
+    const elementId = `invoice-template-${templateSize.toLowerCase()}`;
+    printInvoice(templateSize, elementId);
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = (templateSize: TemplateSize) => {
     if (items.length === 0) {
       toast({
         title: "No Items",
@@ -140,13 +147,13 @@ export default function InvoiceGenerator() {
       return;
     }
 
-    // For now, we'll use the browser's print to PDF functionality
-    // In a production app, you might want to use a library like jsPDF
+    const elementId = `invoice-template-${templateSize.toLowerCase()}`;
+    exportToPDF(templateSize, elementId);
+    
     toast({
       title: "PDF Export",
-      description: "Use your browser's print function and select 'Save as PDF' as the destination.",
+      description: `Generating ${templateSize} PDF invoice...`,
     });
-    window.print();
   };
 
   const handleClearAll = () => {
@@ -213,23 +220,94 @@ export default function InvoiceGenerator() {
             
             <ItemForm onAddItem={handleAddItem} />
             
-            <InvoiceActions
-              onSave={handleSaveInvoice}
+            {/* Save and Clear Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Save className="h-5 w-5 text-jaberco-blue" />
+                  Invoice Actions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    onClick={handleSaveInvoice}
+                    disabled={items.length === 0}
+                    className="bg-green-600 text-white hover:bg-green-700 transition-colors duration-200"
+                    data-testid="button-save-invoice"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Invoice
+                  </Button>
+                  
+                  <Button
+                    onClick={handleClearAll}
+                    className="bg-gray-600 text-white hover:bg-gray-700 transition-colors duration-200"
+                    data-testid="button-clear-all"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Clear All
+                  </Button>
+                </div>
+                
+                <Alert className="bg-blue-50 border-blue-200">
+                  <AlertDescription className="text-blue-700">
+                    <strong>Tip:</strong> Add items first, then use Print or Save as PDF options below
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
+            
+            {/* Print and Export Options */}
+            <InvoiceTemplateSelector
+              company={company}
+              items={items}
+              invoiceNumber={invoiceNumber}
+              currentDate={currentDate}
               onPrint={handlePrintInvoice}
               onExportPDF={handleExportPDF}
-              onClear={handleClearAll}
               hasItems={items.length > 0}
             />
           </div>
 
           {/* Right Column: Live Invoice Preview */}
           <div className="lg:sticky lg:top-8">
-            <InvoicePreview
+            <Card className="print:shadow-none print:border-none">
+              <CardHeader>
+                <CardTitle>Live Preview</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div id="invoice-template-a4">
+                  <InvoiceTemplateA4
+                    company={company}
+                    items={items}
+                    invoiceNumber={invoiceNumber}
+                    currentDate={currentDate}
+                    onRemoveItem={handleRemoveItem}
+                    isPrintMode={false}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Hidden Templates for Printing */}
+        <div className="hidden">
+          <div id="invoice-template-58mm">
+            <InvoiceTemplate58mm
               company={company}
               items={items}
               invoiceNumber={invoiceNumber}
               currentDate={currentDate}
-              onRemoveItem={handleRemoveItem}
+            />
+          </div>
+          <div id="invoice-template-80mm">
+            <InvoiceTemplate80mm
+              company={company}
+              items={items}
+              invoiceNumber={invoiceNumber}
+              currentDate={currentDate}
             />
           </div>
         </div>
@@ -277,7 +355,7 @@ export default function InvoiceGenerator() {
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="text-green-500">✓</span>
-                  PDF export capability
+                  Multiple print formats (A4, 58mm, 80mm)
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="text-green-500">✓</span>
