@@ -1,46 +1,10 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCompanySchema, insertInvoiceSchema, insertInvoiceItemSchema, insertUserSchema } from "@shared/schema";
+import { insertCompanySchema, insertInvoiceSchema, insertInvoiceItemSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-
-  // Authentication routes
-  app.post("/api/auth/login", async (req, res) => {
-    try {
-      const { username, password } = req.body;
-      
-      if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
-      }
-
-      // Check if user exists
-      let user = await storage.getUserByUsername(username);
-      
-      // If user doesn't exist, create default admin user
-      if (!user && username === "admin" && password === "admin123") {
-        user = await storage.createUser({ username: "admin", password: "admin123" });
-      }
-      
-      // Simple password check (in production, use proper hashing)
-      if (!user || user.password !== password) {
-        return res.status(401).json({ message: "Invalid username or password" });
-      }
-
-      res.json({ 
-        success: true, 
-        username: user.username,
-        message: "Login successful" 
-      });
-    } catch (error) {
-      res.status(500).json({ message: "Login failed", error });
-    }
-  });
-
-  app.post("/api/auth/logout", async (req, res) => {
-    res.json({ success: true, message: "Logout successful" });
-  });
   
   // Company routes
   app.post("/api/companies", async (req, res) => {
