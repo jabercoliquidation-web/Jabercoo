@@ -49,11 +49,28 @@ export default function InvoiceGenerator() {
       const response = await apiRequest("POST", "/api/invoices", invoiceData);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
         title: "Success",
-        description: "Invoice saved successfully!",
+        description: `Invoice ${data.invoiceNumber || invoiceNumber} saved successfully!`,
       });
+      
+      // Show option to view saved invoices
+      setTimeout(() => {
+        toast({
+          title: "View Invoices",
+          description: "Click here to view all saved invoices",
+          action: (
+            <Button 
+              size="sm" 
+              onClick={() => window.location.href = '/invoices'}
+              className="bg-jaberco-blue hover:bg-blue-700"
+            >
+              View All
+            </Button>
+          ),
+        });
+      }, 2000);
     },
     onError: (error) => {
       toast({
@@ -90,7 +107,7 @@ export default function InvoiceGenerator() {
     });
   };
 
-  const handleSaveInvoice = () => {
+  const handleSaveInvoice = async () => {
     if (items.length === 0) {
       toast({
         title: "No Items",
@@ -104,9 +121,19 @@ export default function InvoiceGenerator() {
     const tax = subtotal * (company.taxRate / 100);
     const total = subtotal + tax;
 
+    // First create or get the company
+    const companyData = {
+      name: company.name || "Default Company",
+      phone: company.phone || "",
+      address: company.address || "",
+      website: company.website || "",
+      taxRate: company.taxRate.toString(),
+    };
+
     const invoiceData = {
       invoice: {
         invoiceNumber,
+        companyId: null, // Will be set after company creation
         subtotal: subtotal.toString(),
         tax: tax.toString(),
         total: total.toString(),
@@ -118,6 +145,7 @@ export default function InvoiceGenerator() {
         unitPrice: item.unitPrice.toString(),
         total: item.total.toString(),
       })),
+      company: companyData,
     };
 
     saveInvoiceMutation.mutate(invoiceData);
@@ -198,6 +226,15 @@ export default function InvoiceGenerator() {
                 <Globe className="h-4 w-4" />
                 www.jaberco.ca
               </span>
+              <Button
+                onClick={() => window.location.href = '/invoices'}
+                variant="outline"
+                size="sm"
+                className="ml-4"
+                data-testid="button-view-invoices"
+              >
+                View Invoices
+              </Button>
             </div>
           </div>
         </div>

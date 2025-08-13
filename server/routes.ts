@@ -45,19 +45,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Invoice routes
   app.post("/api/invoices", async (req, res) => {
     try {
-      const { invoice: invoiceData, items } = req.body;
+      const { invoice: invoiceData, items, company: companyData } = req.body;
+      
+      let companyId = invoiceData.companyId;
+      
+      // Create company if provided
+      if (companyData && companyData.name) {
+        try {
+          const company = await storage.createCompany(companyData);
+          companyId = company.id;
+        } catch (error) {
+          // Company might already exist, try to find it
+          console.log("Company creation note:", error);
+        }
+      }
       
       // Generate invoice number if not provided
       if (!invoiceData.invoiceNumber) {
         invoiceData.invoiceNumber = await storage.generateInvoiceNumber();
       }
       
-      const validatedInvoice = insertInvoiceSchema.parse(invoiceData);
+      const finalInvoiceData = {
+        ...invoiceData,
+        companyId
+      };
+      
+      const validatedInvoice = insertInvoiceSchema.parse(finalInvoiceData);
       const invoice = await storage.createInvoice(validatedInvoice);
       
       // Add items if provided
       if (items && Array.isArray(items)) {
-        const invoiceItems = await Promise.all(
+        await Promise.all(
           items.map(async (item: any) => {
             const validatedItem = insertInvoiceItemSchema.parse({
               ...item,
@@ -72,7 +90,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fullInvoice = await storage.getInvoice(invoice.id);
       res.json(fullInvoice);
     } catch (error) {
-      res.status(400).json({ message: "Invalid invoice data", error });
+      console.error("Invoice creation error:", error);
+      res.status(400).json({ message: "Invalid invoice data", error: error instanceof Error ? error.message : String(error) });
     }
   });
 

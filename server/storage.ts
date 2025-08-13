@@ -62,7 +62,11 @@ export class MemStorage implements IStorage {
     const company: Company = { 
       ...insertCompany, 
       id, 
-      createdAt: new Date() 
+      createdAt: new Date(),
+      address: insertCompany.address || null,
+      phone: insertCompany.phone || null,
+      website: insertCompany.website || null,
+      taxRate: insertCompany.taxRate || "13.00",
     };
     this.companies.set(id, company);
     return company;
@@ -86,7 +90,12 @@ export class MemStorage implements IStorage {
     const invoice: Invoice = { 
       ...insertInvoice, 
       id, 
-      createdAt: new Date() 
+      createdAt: new Date(),
+      status: insertInvoice.status || "draft",
+      companyId: insertInvoice.companyId || null,
+      subtotal: insertInvoice.subtotal || "0.00",
+      tax: insertInvoice.tax || "0.00",
+      total: insertInvoice.total || "0.00",
     };
     this.invoices.set(id, invoice);
     return invoice;
@@ -137,7 +146,11 @@ export class MemStorage implements IStorage {
 
   async createInvoiceItem(insertItem: InsertInvoiceItem): Promise<InvoiceItem> {
     const id = randomUUID();
-    const item: InvoiceItem = { ...insertItem, id };
+    const item: InvoiceItem = { 
+      ...insertItem, 
+      id,
+      invoiceId: insertItem.invoiceId || null,
+    };
     this.invoiceItems.set(id, item);
     return item;
   }
@@ -166,4 +179,200 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  async getUser(id: string): Promise<User | undefined> {
+    const { db } = await import("./db");
+    const { users } = await import("@shared/schema");
+    const { eq } = await import("drizzle-orm");
+    
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const { db } = await import("./db");
+    const { users } = await import("@shared/schema");
+    const { eq } = await import("drizzle-orm");
+    
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const { db } = await import("./db");
+    const { users } = await import("@shared/schema");
+    
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  async createCompany(insertCompany: InsertCompany): Promise<Company> {
+    const { db } = await import("./db");
+    const { companies } = await import("@shared/schema");
+    
+    const [company] = await db
+      .insert(companies)
+      .values(insertCompany)
+      .returning();
+    return company;
+  }
+
+  async getCompany(id: string): Promise<Company | undefined> {
+    const { db } = await import("./db");
+    const { companies } = await import("@shared/schema");
+    const { eq } = await import("drizzle-orm");
+    
+    const [company] = await db.select().from(companies).where(eq(companies.id, id));
+    return company || undefined;
+  }
+
+  async updateCompany(id: string, updateData: Partial<InsertCompany>): Promise<Company | undefined> {
+    const { db } = await import("./db");
+    const { companies } = await import("@shared/schema");
+    const { eq } = await import("drizzle-orm");
+    
+    const [company] = await db
+      .update(companies)
+      .set(updateData)
+      .where(eq(companies.id, id))
+      .returning();
+    return company || undefined;
+  }
+
+  async createInvoice(insertInvoice: InsertInvoice): Promise<Invoice> {
+    const { db } = await import("./db");
+    const { invoices } = await import("@shared/schema");
+    
+    const [invoice] = await db
+      .insert(invoices)
+      .values(insertInvoice)
+      .returning();
+    return invoice;
+  }
+
+  async getInvoice(id: string): Promise<InvoiceWithItems | undefined> {
+    const { db } = await import("./db");
+    const { invoices, invoiceItems, companies } = await import("@shared/schema");
+    const { eq } = await import("drizzle-orm");
+    
+    const [invoice] = await db.select().from(invoices).where(eq(invoices.id, id));
+    if (!invoice) return undefined;
+
+    const items = await db
+      .select()
+      .from(invoiceItems)
+      .where(eq(invoiceItems.invoiceId, invoice.id));
+
+    const company = invoice.companyId ? 
+      (await db.select().from(companies).where(eq(companies.id, invoice.companyId)))[0] : 
+      undefined;
+
+    return { ...invoice, items, company };
+  }
+
+  async getInvoiceByNumber(invoiceNumber: string): Promise<InvoiceWithItems | undefined> {
+    const { db } = await import("./db");
+    const { invoices, invoiceItems, companies } = await import("@shared/schema");
+    const { eq } = await import("drizzle-orm");
+    
+    const [invoice] = await db.select().from(invoices).where(eq(invoices.invoiceNumber, invoiceNumber));
+    if (!invoice) return undefined;
+
+    const items = await db
+      .select()
+      .from(invoiceItems)
+      .where(eq(invoiceItems.invoiceId, invoice.id));
+
+    const company = invoice.companyId ? 
+      (await db.select().from(companies).where(eq(companies.id, invoice.companyId)))[0] : 
+      undefined;
+
+    return { ...invoice, items, company };
+  }
+
+  async updateInvoice(id: string, updateData: Partial<InsertInvoice>): Promise<Invoice | undefined> {
+    const { db } = await import("./db");
+    const { invoices } = await import("@shared/schema");
+    const { eq } = await import("drizzle-orm");
+    
+    const [invoice] = await db
+      .update(invoices)
+      .set(updateData)
+      .where(eq(invoices.id, id))
+      .returning();
+    return invoice || undefined;
+  }
+
+  async getAllInvoices(): Promise<InvoiceWithItems[]> {
+    const { db } = await import("./db");
+    const { invoices, invoiceItems, companies } = await import("@shared/schema");
+    const { eq, desc } = await import("drizzle-orm");
+    
+    const invoicesData = await db
+      .select()
+      .from(invoices)
+      .orderBy(desc(invoices.createdAt));
+
+    const invoicesWithItems = await Promise.all(
+      invoicesData.map(async (invoice) => {
+        const items = await db
+          .select()
+          .from(invoiceItems)
+          .where(eq(invoiceItems.invoiceId, invoice.id));
+
+        const company = invoice.companyId ? 
+          (await db.select().from(companies).where(eq(companies.id, invoice.companyId)))[0] : 
+          undefined;
+
+        return { ...invoice, items, company };
+      })
+    );
+
+    return invoicesWithItems;
+  }
+
+  async createInvoiceItem(insertItem: InsertInvoiceItem): Promise<InvoiceItem> {
+    const { db } = await import("./db");
+    const { invoiceItems } = await import("@shared/schema");
+    
+    const [item] = await db
+      .insert(invoiceItems)
+      .values(insertItem)
+      .returning();
+    return item;
+  }
+
+  async getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
+    const { db } = await import("./db");
+    const { invoiceItems } = await import("@shared/schema");
+    const { eq } = await import("drizzle-orm");
+    
+    return await db
+      .select()
+      .from(invoiceItems)
+      .where(eq(invoiceItems.invoiceId, invoiceId));
+  }
+
+  async deleteInvoiceItem(id: string): Promise<boolean> {
+    const { db } = await import("./db");
+    const { invoiceItems } = await import("@shared/schema");
+    const { eq } = await import("drizzle-orm");
+    
+    const result = await db.delete(invoiceItems).where(eq(invoiceItems.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  async generateInvoiceNumber(): Promise<string> {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const time = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
+    return `INV-${year}${month}${day}${time}`;
+  }
+}
+
+export const storage = new DatabaseStorage();
