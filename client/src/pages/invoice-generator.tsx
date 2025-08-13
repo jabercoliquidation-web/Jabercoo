@@ -218,23 +218,26 @@ export default function InvoiceGenerator() {
                 <p className="text-sm text-gray-500">Invoice Generator</p>
               </div>
             </div>
-            <div className="hidden md:flex items-center space-x-4 text-sm text-gray-600">
-              <span className="flex items-center gap-1">
-                <Phone className="h-4 w-4" />
-                +1 (905) 555-0123
-              </span>
-              <span className="flex items-center gap-1">
-                <Globe className="h-4 w-4" />
-                www.jaberco.ca
-              </span>
+            <div className="flex items-center space-x-4 text-sm text-gray-600">
+              <div className="hidden md:flex items-center space-x-4">
+                <span className="flex items-center gap-1">
+                  <Phone className="h-4 w-4" />
+                  +1 (905) 555-0123
+                </span>
+                <span className="flex items-center gap-1">
+                  <Globe className="h-4 w-4" />
+                  www.jaberco.ca
+                </span>
+              </div>
               <Button
                 onClick={() => window.location.href = '/invoices'}
                 variant="outline"
                 size="sm"
-                className="ml-4"
+                className="bg-jaberco-blue text-white hover:bg-blue-700 border-jaberco-blue"
                 data-testid="button-view-invoices"
               >
-                View Invoices
+                <File className="h-4 w-4 mr-1" />
+                عرض الفواتير
               </Button>
             </div>
           </div>
@@ -288,9 +291,19 @@ export default function InvoiceGenerator() {
                   </Button>
                 </div>
 
+                {/* View Invoices Button */}
+                <Button
+                  onClick={() => window.location.href = '/invoices'}
+                  className="w-full bg-jaberco-blue text-white hover:bg-blue-700 transition-colors duration-200"
+                  data-testid="button-view-saved-invoices"
+                >
+                  <File className="h-4 w-4 mr-2" />
+                  عرض الفواتير المحفوظة
+                </Button>
+
                 <Alert className="bg-blue-50 border-blue-200">
                   <AlertDescription className="text-blue-700">
-                    <strong>Tip:</strong> Add items first, then use Print or Save as PDF options below
+                    <strong>نصيحة:</strong> أضف العناصر أولاً، ثم استخدم خيارات الطباعة أو حفظ PDF أدناه
                   </AlertDescription>
                 </Alert>
               </CardContent>
