@@ -50,12 +50,17 @@ export default function InvoiceGenerator() {
     
     setCurrentDate(torontoDateTime);
 
-    // Generate invoice number using Toronto timezone
+    // Generate unique invoice number using Toronto timezone with timestamp
     const torontoDate = new Date(today.toLocaleString("en-US", {timeZone: "America/Toronto"}));
     const year = torontoDate.getFullYear();
     const month = String(torontoDate.getMonth() + 1).padStart(2, '0');
     const day = String(torontoDate.getDate()).padStart(2, '0');
-    setInvoiceNumber(`INV-${year}${month}${day}001`);
+    const hours = String(torontoDate.getHours()).padStart(2, '0');
+    const minutes = String(torontoDate.getMinutes()).padStart(2, '0');
+    const seconds = String(torontoDate.getSeconds()).padStart(2, '0');
+    
+    // Create unique invoice number with timestamp
+    setInvoiceNumber(`INV-${year}${month}${day}${hours}${minutes}${seconds}`);
   }, []);
 
   // Save invoice mutation
