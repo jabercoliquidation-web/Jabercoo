@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { printInvoice, exportToPDF, type TemplateSize } from "@/utils/print-utils";
+import { InvoiceActions } from "@/components/invoice-actions";
 
 interface InvoiceItem extends ItemFormData {
   total: number;
@@ -35,7 +36,7 @@ export default function InvoiceGenerator() {
   useEffect(() => {
     const today = new Date();
     setCurrentDate(today.toLocaleDateString('en-CA'));
-    
+
     // Generate invoice number
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -54,15 +55,15 @@ export default function InvoiceGenerator() {
         title: "Success",
         description: `Invoice ${data.invoiceNumber || invoiceNumber} saved successfully!`,
       });
-      
+
       // Show option to view saved invoices
       setTimeout(() => {
         toast({
           title: "View Invoices",
           description: "Click here to view all saved invoices",
           action: (
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               onClick={() => window.location.href = '/invoices'}
               className="bg-jaberco-blue hover:bg-blue-700"
             >
@@ -90,7 +91,7 @@ export default function InvoiceGenerator() {
     const total = itemData.quantity * itemData.unitPrice;
     const newItem: InvoiceItem = { ...itemData, total };
     setItems([...items, newItem]);
-    
+
     toast({
       title: "Item Added",
       description: `${itemData.name} has been added to the invoice.`,
@@ -100,7 +101,7 @@ export default function InvoiceGenerator() {
   const handleRemoveItem = (index: number) => {
     const removedItem = items[index];
     setItems(items.filter((_, i) => i !== index));
-    
+
     toast({
       title: "Item Removed",
       description: `${removedItem.name} has been removed from the invoice.`,
@@ -160,7 +161,7 @@ export default function InvoiceGenerator() {
       });
       return;
     }
-    
+
     const elementId = `invoice-template-${templateSize.toLowerCase()}`;
     printInvoice(templateSize, elementId);
   };
@@ -177,7 +178,7 @@ export default function InvoiceGenerator() {
 
     const elementId = `invoice-template-${templateSize.toLowerCase()}`;
     exportToPDF(templateSize, elementId);
-    
+
     toast({
       title: "PDF Export",
       description: `Generating ${templateSize} PDF invoice...`,
@@ -193,7 +194,7 @@ export default function InvoiceGenerator() {
       taxRate: 13,
     });
     setItems([]);
-    
+
     toast({
       title: "Cleared",
       description: "All invoice data has been cleared.",
@@ -254,9 +255,9 @@ export default function InvoiceGenerator() {
               onCompanyChange={handleCompanyChange}
               initialData={company}
             />
-            
+
             <ItemForm onAddItem={handleAddItem} />
-            
+
             {/* Save and Clear Actions */}
             <Card>
               <CardHeader>
@@ -276,7 +277,7 @@ export default function InvoiceGenerator() {
                     <Save className="h-4 w-4 mr-2" />
                     Save Invoice
                   </Button>
-                  
+
                   <Button
                     onClick={handleClearAll}
                     className="bg-gray-600 text-white hover:bg-gray-700 transition-colors duration-200"
@@ -286,7 +287,7 @@ export default function InvoiceGenerator() {
                     Clear All
                   </Button>
                 </div>
-                
+
                 <Alert className="bg-blue-50 border-blue-200">
                   <AlertDescription className="text-blue-700">
                     <strong>Tip:</strong> Add items first, then use Print or Save as PDF options below
@@ -294,7 +295,7 @@ export default function InvoiceGenerator() {
                 </Alert>
               </CardContent>
             </Card>
-            
+
             {/* Print and Export Options */}
             <InvoiceTemplateSelector
               company={company}
