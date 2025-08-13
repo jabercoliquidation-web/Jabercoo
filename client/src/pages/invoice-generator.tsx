@@ -35,12 +35,26 @@ export default function InvoiceGenerator() {
   // Generate invoice number and set current date on mount
   useEffect(() => {
     const today = new Date();
-    setCurrentDate(today.toLocaleDateString('en-CA'));
+    
+    // Format date and time for Toronto timezone
+    const torontoDateTime = today.toLocaleString('en-US', {
+      timeZone: 'America/Toronto',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    });
+    
+    setCurrentDate(torontoDateTime);
 
-    // Generate invoice number
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
+    // Generate invoice number using Toronto timezone
+    const torontoDate = new Date(today.toLocaleString("en-US", {timeZone: "America/Toronto"}));
+    const year = torontoDate.getFullYear();
+    const month = String(torontoDate.getMonth() + 1).padStart(2, '0');
+    const day = String(torontoDate.getDate()).padStart(2, '0');
     setInvoiceNumber(`INV-${year}${month}${day}001`);
   }, []);
 

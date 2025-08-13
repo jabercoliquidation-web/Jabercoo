@@ -31,7 +31,7 @@ export function InvoiceTemplate80mm({
           {company.address || "2480 Cawthra Rd #16, Mississauga, ON"}
         </div>
         <div className="text-xs">
-          Tel: {company.phone || "+1 (905) 555-0123"}
+          Tel: {company.phone || "+1 289 216 6500"}
         </div>
         <div className="text-xs">
           {company.website || "www.jaberco.ca"}

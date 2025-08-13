@@ -42,7 +42,7 @@ export function InvoiceTemplateA4({
             </p>
             <p>
               Tel: <span data-testid="text-company-phone">
-                {company.phone || "+1 (905) 555-0123"}
+                {company.phone || "+1 289 216 6500"}
               </span>
             </p>
             <p>
