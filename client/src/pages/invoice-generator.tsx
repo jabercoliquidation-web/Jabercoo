@@ -35,7 +35,7 @@ export default function InvoiceGenerator() {
   // Generate invoice number and set current date on mount
   useEffect(() => {
     const today = new Date();
-    
+
     // Format date and time for Toronto timezone
     const torontoDateTime = today.toLocaleString('en-US', {
       timeZone: 'America/Toronto',
@@ -47,7 +47,7 @@ export default function InvoiceGenerator() {
       second: '2-digit',
       hour12: true
     });
-    
+
     setCurrentDate(torontoDateTime);
 
     // Generate unique invoice number using Toronto timezone with timestamp
@@ -58,7 +58,7 @@ export default function InvoiceGenerator() {
     const hours = String(torontoDate.getHours()).padStart(2, '0');
     const minutes = String(torontoDate.getMinutes()).padStart(2, '0');
     const seconds = String(torontoDate.getSeconds()).padStart(2, '0');
-    
+
     // Create unique invoice number with timestamp
     setInvoiceNumber(`INV-${year}${month}${day}${hours}${minutes}${seconds}`);
   }, []);

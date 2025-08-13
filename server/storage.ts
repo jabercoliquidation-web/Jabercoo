@@ -167,12 +167,17 @@ export class MemStorage implements IStorage {
 
   async generateInvoiceNumber(): Promise<string> {
     const existingInvoices = Array.from(this.invoices.values());
-    const maxNumber = existingInvoices
-      .map(inv => {
-        const match = inv.invoiceNumber.match(/INV-(\d+)$/);
-        return match ? parseInt(match[1], 10) : 0;
-      })
-      .reduce((max, current) => Math.max(max, current), 0);
+    let maxNumber = 0;
+    
+    for (const invoice of existingInvoices) {
+      const match = invoice.invoiceNumber.match(/^INV-(\d+)$/);
+      if (match) {
+        const number = parseInt(match[1], 10);
+        if (number > maxNumber) {
+          maxNumber = number;
+        }
+      }
+    }
     
     const nextNumber = (maxNumber + 1).toString().padStart(6, '0');
     return `INV-${nextNumber}`;
@@ -366,14 +371,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async generateInvoiceNumber(): Promise<string> {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
-    return `INV-${year}${month}${day}${hours}${minutes}${seconds}`;
+    // Get all existing invoices and find the highest number
+    const { db } = await import("./db");
+    const { invoices } = await import("@shared/schema");
+    const { desc } = await import("drizzle-orm");
+    
+    const existingInvoices = await db
+      .select({ invoiceNumber: invoices.invoiceNumber })
+      .from(invoices)
+      .orderBy(desc(invoices.invoiceNumber));
+    
+    // Find the highest sequential number
+    let maxNumber = 0;
+    for (const invoice of existingInvoices) {
+      const match = invoice.invoiceNumber.match(/^INV-(\d+)$/);
+      if (match) {
+        const number = parseInt(match[1], 10);
+        if (number > maxNumber) {
+          maxNumber = number;
+        }
+      }
+    }
+    
+    // Generate next sequential number
+    const nextNumber = (maxNumber + 1).toString().padStart(6, '0');
+    return `INV-${nextNumber}`;
   }
 }
 
