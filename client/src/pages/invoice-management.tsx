@@ -210,6 +210,14 @@ export default function InvoiceManagement() {
       hour12: true
     });
 
+    // Convert and validate item data to ensure proper types
+    const processedItems = invoice.items.map(item => ({
+      ...item,
+      quantity: typeof item.quantity === 'string' ? parseInt(item.quantity) || 1 : item.quantity,
+      unitPrice: typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) || 0 : item.unitPrice,
+      total: typeof item.total === 'string' ? parseFloat(item.total) || 0 : item.total
+    }));
+
     // Render the invoice template using React
     import('react-dom/client').then(({ createRoot }) => {
       const root = createRoot(tempDiv);
@@ -233,9 +241,9 @@ export default function InvoiceManagement() {
             address: invoice.company?.address || "2480 Cawthra Rd #16, Mississauga, ON",
             phone: invoice.company?.phone || "+1 289 216 6500",
             website: invoice.company?.website || "www.jaberco.ca",
-            taxRate: invoice.company?.taxRate || 13
+            taxRate: typeof invoice.company?.taxRate === 'string' ? parseFloat(invoice.company.taxRate) || 13 : (invoice.company?.taxRate || 13)
           },
-          items: invoice.items,
+          items: processedItems,
           invoiceNumber: invoice.invoiceNumber,
           currentDate: formattedDate,
           isPrintMode: true
@@ -274,6 +282,14 @@ export default function InvoiceManagement() {
       hour12: true
     });
 
+    // Convert and validate item data to ensure proper types
+    const processedItems = invoice.items.map(item => ({
+      ...item,
+      quantity: typeof item.quantity === 'string' ? parseInt(item.quantity) || 1 : item.quantity,
+      unitPrice: typeof item.unitPrice === 'string' ? parseFloat(item.unitPrice) || 0 : item.unitPrice,
+      total: typeof item.total === 'string' ? parseFloat(item.total) || 0 : item.total
+    }));
+
     // Render the invoice template using React
     import('react-dom/client').then(({ createRoot }) => {
       const root = createRoot(tempDiv);
@@ -297,9 +313,9 @@ export default function InvoiceManagement() {
             address: invoice.company?.address || "2480 Cawthra Rd #16, Mississauga, ON",
             phone: invoice.company?.phone || "+1 289 216 6500",
             website: invoice.company?.website || "www.jaberco.ca",
-            taxRate: invoice.company?.taxRate || 13
+            taxRate: typeof invoice.company?.taxRate === 'string' ? parseFloat(invoice.company.taxRate) || 13 : (invoice.company?.taxRate || 13)
           },
-          items: invoice.items,
+          items: processedItems,
           invoiceNumber: invoice.invoiceNumber,
           currentDate: formattedDate,
           isPrintMode: true
