@@ -222,7 +222,7 @@ export default function InvoiceGenerator() {
               <div className="hidden md:flex items-center space-x-4">
                 <span className="flex items-center gap-1">
                   <Phone className="h-4 w-4" />
-                  +1 (905) 555-0123
+                  +1 289 216 6500
                 </span>
                 <span className="flex items-center gap-1">
                   <Globe className="h-4 w-4" />
@@ -237,7 +237,7 @@ export default function InvoiceGenerator() {
                 data-testid="button-view-invoices"
               >
                 <File className="h-4 w-4 mr-1" />
-                عرض الفواتير
+                View Invoices
               </Button>
             </div>
           </div>
@@ -298,12 +298,12 @@ export default function InvoiceGenerator() {
                   data-testid="button-view-saved-invoices"
                 >
                   <File className="h-4 w-4 mr-2" />
-                  عرض الفواتير المحفوظة
+                  View Saved Invoices
                 </Button>
 
                 <Alert className="bg-blue-50 border-blue-200">
                   <AlertDescription className="text-blue-700">
-                    <strong>نصيحة:</strong> أضف العناصر أولاً، ثم استخدم خيارات الطباعة أو حفظ PDF أدناه
+                    <strong>Tip:</strong> Add items first, then use Print or Save as PDF options below
                   </AlertDescription>
                 </Alert>
               </CardContent>
@@ -385,7 +385,7 @@ export default function InvoiceGenerator() {
                 </p>
                 <p className="flex items-center gap-2">
                   <Phone className="h-4 w-4" />
-                  +1 (905) 555-0123
+                  +1 289 216 6500
                 </p>
                 <p className="flex items-center gap-2">
                   <Globe className="h-4 w-4" />
