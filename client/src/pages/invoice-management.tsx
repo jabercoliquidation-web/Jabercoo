@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { 
@@ -53,6 +53,10 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { printInvoice, exportToPDF, type TemplateSize } from "@/utils/print-utils";
+import { InvoiceTemplateA4 } from "@/components/invoice-template-a4";
+import { InvoiceTemplate58mm } from "@/components/invoice-template-58mm";
+import { InvoiceTemplate80mm } from "@/components/invoice-template-80mm";
 import type { InvoiceWithItems } from "@shared/schema";
 
 type SortField = "invoiceNumber" | "total" | "status" | "createdAt";
@@ -185,91 +189,132 @@ export default function InvoiceManagement() {
     }
   };
 
-  const handlePrintInvoice = (invoice: InvoiceWithItems) => {
-    // Create a print window with the invoice content
-    const printWindow = window.open('', '_blank', 'width=800,height=600');
-    if (!printWindow) {
-      toast({
-        title: "Error",
-        description: "Please allow popups to print invoices",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handlePrintInvoice = (invoice: InvoiceWithItems, templateSize: TemplateSize = "A4") => {
+    // Create temporary element for the invoice template
+    const tempDiv = document.createElement('div');
+    tempDiv.style.position = 'absolute';
+    tempDiv.style.left = '-9999px';
+    tempDiv.style.top = '-9999px';
+    tempDiv.id = `temp-invoice-${invoice.id}`;
+    document.body.appendChild(tempDiv);
 
-    const printContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Invoice ${invoice.invoiceNumber}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .header { text-align: center; margin-bottom: 30px; }
-            .company-info { margin-bottom: 20px; }
-            .invoice-info { margin-bottom: 20px; }
-            .items-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            .items-table th, .items-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            .items-table th { background-color: #f5f5f5; }
-            .totals { text-align: right; margin-top: 20px; }
-            .total-row { font-weight: bold; font-size: 1.1em; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>JABERCO®</h1>
-            <p>Professional Invoice</p>
-          </div>
-          
-          <div class="company-info">
-            <h3>${invoice.company?.name || "Company Name"}</h3>
-            <p>${invoice.company?.address || ""}</p>
-            <p>Phone: ${invoice.company?.phone || ""}</p>
-            <p>Website: ${invoice.company?.website || ""}</p>
-          </div>
-          
-          <div class="invoice-info">
-            <p><strong>Invoice Number:</strong> ${invoice.invoiceNumber}</p>
-            <p><strong>Date:</strong> ${format(new Date(invoice.createdAt!), 'yyyy-MM-dd')}</p>
-            <p><strong>Status:</strong> ${invoice.status}</p>
-          </div>
-          
-          <table class="items-table">
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th>Quantity</th>
-                <th>Unit Price</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${invoice.items.map(item => `
-                <tr>
-                  <td>${item.name}</td>
-                  <td>${item.quantity}</td>
-                  <td>$${parseFloat(item.unitPrice).toFixed(2)}</td>
-                  <td>$${parseFloat(item.total).toFixed(2)}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-          
-          <div class="totals">
-            <p>Subtotal: $${parseFloat(invoice.subtotal).toFixed(2)}</p>
-            <p>Tax (${invoice.company?.taxRate || 13}%): $${parseFloat(invoice.tax).toFixed(2)}</p>
-            <p class="total-row">Total: $${parseFloat(invoice.total).toFixed(2)}</p>
-          </div>
-        </body>
-      </html>
-    `;
+    // Format the date properly
+    const formattedDate = new Date(invoice.createdAt!).toLocaleString('en-US', {
+      timeZone: 'America/Toronto',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    });
 
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 250);
+    // Render the invoice template using React
+    import('react-dom/client').then(({ createRoot }) => {
+      const root = createRoot(tempDiv);
+      
+      let TemplateComponent;
+      switch (templateSize) {
+        case "58mm":
+          TemplateComponent = InvoiceTemplate58mm;
+          break;
+        case "80mm":
+          TemplateComponent = InvoiceTemplate80mm;
+          break;
+        default:
+          TemplateComponent = InvoiceTemplateA4;
+      }
+
+      root.render(
+        React.createElement(TemplateComponent, {
+          company: {
+            name: invoice.company?.name || "Jaberco",
+            address: invoice.company?.address || "2480 Cawthra Rd #16, Mississauga, ON",
+            phone: invoice.company?.phone || "+1 289 216 6500",
+            website: invoice.company?.website || "www.jaberco.ca",
+            taxRate: invoice.company?.taxRate || 13
+          },
+          items: invoice.items,
+          invoiceNumber: invoice.invoiceNumber,
+          currentDate: formattedDate,
+          isPrintMode: true
+        })
+      );
+
+      // Wait for the component to render, then print
+      setTimeout(() => {
+        printInvoice(templateSize, tempDiv.id);
+        // Clean up
+        setTimeout(() => {
+          document.body.removeChild(tempDiv);
+        }, 1000);
+      }, 500);
+    });
+  };
+
+  const handleExportInvoicePDF = (invoice: InvoiceWithItems, templateSize: TemplateSize = "A4") => {
+    // Create temporary element for the invoice template
+    const tempDiv = document.createElement('div');
+    tempDiv.style.position = 'absolute';
+    tempDiv.style.left = '-9999px';
+    tempDiv.style.top = '-9999px';
+    tempDiv.id = `temp-invoice-pdf-${invoice.id}`;
+    document.body.appendChild(tempDiv);
+
+    // Format the date properly
+    const formattedDate = new Date(invoice.createdAt!).toLocaleString('en-US', {
+      timeZone: 'America/Toronto',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    });
+
+    // Render the invoice template using React
+    import('react-dom/client').then(({ createRoot }) => {
+      const root = createRoot(tempDiv);
+      
+      let TemplateComponent;
+      switch (templateSize) {
+        case "58mm":
+          TemplateComponent = InvoiceTemplate58mm;
+          break;
+        case "80mm":
+          TemplateComponent = InvoiceTemplate80mm;
+          break;
+        default:
+          TemplateComponent = InvoiceTemplateA4;
+      }
+
+      root.render(
+        React.createElement(TemplateComponent, {
+          company: {
+            name: invoice.company?.name || "Jaberco",
+            address: invoice.company?.address || "2480 Cawthra Rd #16, Mississauga, ON",
+            phone: invoice.company?.phone || "+1 289 216 6500",
+            website: invoice.company?.website || "www.jaberco.ca",
+            taxRate: invoice.company?.taxRate || 13
+          },
+          items: invoice.items,
+          invoiceNumber: invoice.invoiceNumber,
+          currentDate: formattedDate,
+          isPrintMode: true
+        })
+      );
+
+      // Wait for the component to render, then export to PDF
+      setTimeout(() => {
+        exportToPDF(templateSize, tempDiv.id);
+        // Clean up
+        setTimeout(() => {
+          document.body.removeChild(tempDiv);
+        }, 1000);
+      }, 500);
+    });
   };
 
   if (isLoading) {
@@ -439,11 +484,32 @@ export default function InvoiceManagement() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
                               <DropdownMenuItem
-                                onClick={() => handlePrintInvoice(invoice)}
-                                data-testid={`button-print-${invoice.id}`}
+                                onClick={() => handlePrintInvoice(invoice, "A4")}
+                                data-testid={`button-print-a4-${invoice.id}`}
                               >
                                 <Printer className="h-4 w-4 mr-2" />
-                                Print
+                                Print A4
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handlePrintInvoice(invoice, "58mm")}
+                                data-testid={`button-print-58mm-${invoice.id}`}
+                              >
+                                <Printer className="h-4 w-4 mr-2" />
+                                Print 58mm Receipt
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handlePrintInvoice(invoice, "80mm")}
+                                data-testid={`button-print-80mm-${invoice.id}`}
+                              >
+                                <Printer className="h-4 w-4 mr-2" />
+                                Print 80mm Receipt
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleExportInvoicePDF(invoice, "A4")}
+                                data-testid={`button-export-pdf-${invoice.id}`}
+                              >
+                                <Download className="h-4 w-4 mr-2" />
+                                Export PDF
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
